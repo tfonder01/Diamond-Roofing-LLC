@@ -5,7 +5,6 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Diamond Roofing LLC | Residential Roofing in Clarksville, TN',
   description: 'Diamond Roofing LLC provides residential roofing, repairs, siding, framing, remodeling, decks, and fencing in Clarksville, TN.',
-  generator: 'v0.app',
 }
 
 export const viewport: Viewport = {
