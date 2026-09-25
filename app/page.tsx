@@ -6,14 +6,17 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
-  Grid2X2,
+  Construction,
+  Fence,
   Hammer,
   House,
   Mail,
   MapPin,
   Menu,
   MessageSquare,
+  PanelsTopLeft,
   Phone,
+  Ruler,
   ShieldCheck,
   Star,
   Upload,
@@ -104,25 +107,25 @@ const serviceCards = [
   },
   {
     service: 'siding' as const,
-    icon: Grid2X2,
+    icon: PanelsTopLeft,
     title: 'Siding',
     description: "Siding repairs and replacements that refresh your home's exterior and help protect it from the weather.",
   },
   {
     service: 'remodeling-additions' as const,
-    icon: MessageSquare,
+    icon: Ruler,
     title: 'Remodeling and Additions',
     description: 'Interior remodels and home additions planned around how your household actually lives and grows.',
   },
   {
     service: 'framing-addition' as const,
-    icon: ShieldCheck,
+    icon: Construction,
     title: 'Framing',
     description: 'Residential framing work that supports the structure behind your remodel, addition, or repair.',
   },
   {
     service: 'decks-fencing' as const,
-    icon: Upload,
+    icon: Fence,
     title: 'Decks and Fencing',
     description: 'Outdoor decks and fencing that add usable space and define your property with clean, sturdy construction.',
   },
@@ -157,22 +160,22 @@ const projects = [
 
 const processSteps = [
   {
-    number: '01',
+    number: '1',
     title: 'Tell Us About the Project',
     description: 'Share the basics through the Estimate Assistant — service, scope, and where the property is located.',
   },
   {
-    number: '02',
+    number: '2',
     title: 'We Review the Details',
     description: 'A team member looks over your request and any photos you choose to share.',
   },
   {
-    number: '03',
+    number: '3',
     title: 'Discuss the Property and Scope',
     description: 'We talk through the project with you so the scope is clear before any work begins.',
   },
   {
-    number: '04',
+    number: '4',
     title: 'Receive the Next Steps',
     description: "You'll get clear direction on how to move forward, with no pressure to decide on the spot.",
   },
@@ -463,6 +466,7 @@ function EstimateAssistant({
   const [submissionError, setSubmissionError] = useState('')
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const modalScrollRef = useRef<HTMLDivElement>(null)
   const previousActiveRef = useRef<HTMLElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollYRef = useRef(0)
@@ -526,6 +530,10 @@ function EstimateAssistant({
       setRequest((current) => (current.service ? current : { ...current, service: initialService }))
     }
   }, [initialService, isOpen])
+
+  useEffect(() => {
+    modalScrollRef.current?.scrollTo({ top: 0 })
+  }, [stage])
 
   const projectOptions = useMemo(
     () => (request.service ? projectTypeOptions[request.service] : []),
@@ -699,6 +707,9 @@ function EstimateAssistant({
               <p id="estimate-description" className="modal-step-caption">
                 Step {stage + 1} of {stageLabels.length}
               </p>
+              <p className="modal-mobile-step">
+                Step {stage + 1} of {stageLabels.length} · {stageLabels[stage]}
+              </p>
             </div>
             <button
               type="button"
@@ -731,9 +742,6 @@ function EstimateAssistant({
           </nav>
 
           <div className="stepper-mobile">
-            <p className="stepper-mobile-caption">
-              Step {stage + 1} of {stageLabels.length} · {stageLabels[stage]}
-            </p>
             <div className="stepper-progress-track">
               <div
                 className="stepper-progress-fill"
@@ -744,7 +752,7 @@ function EstimateAssistant({
         </div>
 
         <form className="modal-form" onSubmit={handleSubmit}>
-          <div className="modal-scroll">
+          <div className="modal-scroll" ref={modalScrollRef}>
             {stage === 0 && (
               <section className="assistant-stage">
                 <div className="stage-heading">
@@ -762,14 +770,16 @@ function EstimateAssistant({
                         onClick={() => handleServiceSelection(service)}
                         aria-pressed={selected}
                       >
-                        {selected && (
-                          <span className="choice-check" aria-hidden="true">
-                            <Check size={14} />
-                          </span>
-                        )}
-                        <Icon size={18} />
-                        <strong>{title}</strong>
-                        <span>{description}</span>
+                        <span className="choice-icon" aria-hidden="true">
+                          <Icon size={20} strokeWidth={1.8} />
+                        </span>
+                        <span className="choice-copy">
+                          <strong>{title}</strong>
+                          <span>{description}</span>
+                        </span>
+                        <span className={selected ? 'choice-check is-visible' : 'choice-check'} aria-hidden="true">
+                          {selected && <Check size={14} />}
+                        </span>
                       </button>
                     )
                   })}
@@ -1078,10 +1088,10 @@ function EstimateAssistant({
             )}
           </div>
 
-          <div className="modal-footer">
+          <div className={stage === 0 ? 'modal-footer is-first-step' : 'modal-footer'}>
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button modal-back-button"
               onClick={() => moveStage('back')}
               disabled={stage === 0 || submissionState === 'loading'}
             >
@@ -1119,6 +1129,30 @@ export default function Page() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    if (!menuOpen) return
+
+    document.body.classList.add('mobile-menu-open')
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+
+    function handleDesktopChange(event: MediaQueryListEvent) {
+      if (event.matches) setMenuOpen(false)
+    }
+
+    const desktopQuery = window.matchMedia('(min-width: 901px)')
+    document.addEventListener('keydown', handleKeyDown)
+    desktopQuery.addEventListener('change', handleDesktopChange)
+
+    return () => {
+      document.body.classList.remove('mobile-menu-open')
+      document.removeEventListener('keydown', handleKeyDown)
+      desktopQuery.removeEventListener('change', handleDesktopChange)
+    }
+  }, [menuOpen])
+
   function openAssistant(service?: ServiceOption) {
     setSelectedService(service ?? '')
     setAssistantOpen(true)
@@ -1140,6 +1174,7 @@ export default function Page() {
       <main className="page-shell" id="top">
         <header className={isScrolled ? 'site-header is-scrolled' : 'site-header'}>
           <div className="container header-inner">
+            {/* The current logo asset has an opaque background; replace it with the owner's official transparent PNG or SVG when available. */}
             <a className="site-logo" href="#top" aria-label="Diamond Roofing home, scroll to top" onClick={scrollToTop}>
               <img src={images.logo} alt="Diamond Roofing LLC logo" />
             </a>
@@ -1161,6 +1196,14 @@ export default function Page() {
                   {item.label}
                 </a>
               ))}
+              <div className="mobile-menu-actions">
+                <a href="tel:9319806224" className="mobile-menu-phone" onClick={() => setMenuOpen(false)}>
+                  <Phone size={18} /> Call (931) 980-6224
+                </a>
+                <button type="button" className="header-cta" onClick={() => openAssistant()}>
+                  Request an Estimate
+                </button>
+              </div>
             </nav>
 
             <div className="header-actions">
@@ -1216,7 +1259,7 @@ export default function Page() {
               {serviceCards.map(({ service, icon: Icon, title, description }) => (
                 <article className="service-card" key={service}>
                   <div className="service-icon">
-                    <Icon size={18} />
+                    <Icon size={23} strokeWidth={1.8} />
                   </div>
                   <h3>{title}</h3>
                   <p>{description}</p>
@@ -1301,8 +1344,10 @@ export default function Page() {
             <div className="process-grid">
               {processSteps.map((step) => (
                 <article className="process-card" key={step.number}>
-                  <span className="process-number">{step.number}</span>
-                  <h3>{step.title}</h3>
+                  <div className="process-heading">
+                    <span className="process-number">{step.number}</span>
+                    <h3>{step.title}</h3>
+                  </div>
                   <p>{step.description}</p>
                 </article>
               ))}
